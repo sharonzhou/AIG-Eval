@@ -146,13 +146,14 @@ agent:
   step_limit: 0.
   cost_limit: 3.
   # mode: confirm
-environment:
+env:
   env:
     PAGER: cat
     MANPAGER: cat
     LESS: -R
     PIP_PROGRESS_BAR: 'off'
     TQDM_DISABLE: '1'
+  timeout: 3600
 model:
   model_name: openai/gpt-5
   model_kwargs:

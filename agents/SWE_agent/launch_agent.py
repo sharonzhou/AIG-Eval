@@ -95,6 +95,16 @@ def launch_agent(eval_config: dict[str, Any], task_config_dir: str, workspace: s
         os.makedirs(os.path.join(workspace, "python_bindings"), exist_ok=True)
         # copy the script python_bindings/tritonbench.py into the workspace
         shutil.copy(tritonbench_script_path, os.path.join(workspace, "python_bindings", "tritonbench.py"))
+    if any("rocprim" in task for task in eval_config["tasks"]):
+        subprocess.run(
+            ["git", "clone", "https://github.com/ROCm/rocPRIM.git", os.path.join(workspace, "rocPRIM")],
+            check=True
+        )
+        test_correctness_benchmark_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "python_bindings", "test_correctness_benchmark.py")
+        # make a dir for the target path
+        os.makedirs(os.path.join(workspace, "python_bindings"), exist_ok=True)
+        # copy the script python_bindings/test_correctness_benchmark.py into the workspace
+        shutil.copy(test_correctness_benchmark_path, os.path.join(workspace, "python_bindings", "test_correctness_benchmark.py"))
         
     prompt = prompt_builder(task_config_dir, workspace, eval_config, logger)
 
