@@ -1,0 +1,8 @@
+max_iterations: 1
+descendant_num: 1
+timeout_seconds: 3600
+python_path: python3
+target_gpu: MI250
+api_url: http://0.0.0.0:8002/v1/completions
+max_length: 4096
+llm_provider: vllm 

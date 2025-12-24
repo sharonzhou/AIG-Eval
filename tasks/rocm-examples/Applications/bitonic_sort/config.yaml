@@ -1,0 +1,18 @@
+source_file_path:
+- main.hip
+target_kernel_functions:
+- bitonic_sort
+compile_command:
+- make
+correctness_command:
+- ./applications_bitonic_sort
+performance_command:
+- rocprof-compute profile -n kernelgen --path rocprof_compute_profile --no-roof --join-type
+  kernel -b SQ -b TCP -b TCC -- ./applications_bitonic_sort -l 15
+- rocprof-compute analyze --path rocprof_compute_profile -b 2
+task_type: hip2hip
+task_result_template: null
+prompt:
+  source_code: null
+  instructions: null
+  cheatsheet: null

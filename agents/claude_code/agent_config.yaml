@@ -1,0 +1,3 @@
+max_iterations: 3
+timeout_seconds: 600
+python_path: /root/AIG-Eval/.venv/bin/python3
