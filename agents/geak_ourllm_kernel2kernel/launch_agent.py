@@ -49,6 +49,7 @@ def launch_agent(eval_config: dict[str, Any], task_config_dir: str, workspace: s
     """
 
     AGENT = "main_gaagent_hip_kernel2kernel.py"
+    #AGENT = "main_gaagent_hip.py"
     AGENT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "GEAK-agent", "src")
     
     AGENT_COMMAND = f"python3 {AGENT}"
@@ -120,7 +121,10 @@ def launch_agent(eval_config: dict[str, Any], task_config_dir: str, workspace: s
     assert 'OPENAI_API_KEY' in os.environ, "OPENAI_API_KEY environment variable is not set."
     OPENAI_API_KEY = os.environ['OPENAI_API_KEY']
     hipbench_config['api_key'] = OPENAI_API_KEY
-    hipbench_config['api_url'] = agent_config.get("api_url", "http://0.0.0.0:8001/v1/completions")
+    if "api_url" in eval_config.keys():
+        hipbench_config['api_url'] = eval_config.get("api_url", "http://0.0.0.0:8001/v1/completions")
+    else:
+        hipbench_config['api_url'] = agent_config.get("api_url", "http://0.0.0.0:8001/v1/completions")
     hipbench_config['max_length'] = agent_config.get("max_length", 8192)
     hipbench_config['current_task'] = current_task
     os.makedirs(output_path,exist_ok=True,mode=0o777)
@@ -340,7 +344,7 @@ def launch_agent(eval_config: dict[str, Any], task_config_dir: str, workspace: s
     best_optimized_source_file_path = source_file_path
     best_optimized_kernel_functions = test_config.get("target_kernel_functions", [])
     # Compose the result structure, overwriting/correcting relevant fields
-    template_data["task_name"] = eval_config.get("tasks", "N/A")[0]
+    template_data["task_name"] = current_task #eval_config.get("current_task", None) #eval_config.get("tasks", "N/A")[0]
     template_data["task_type"] = "hip2hip"
     template_data["timestamp"] = datetime.now().isoformat(timespec="seconds")
     template_data["agent_type"] = "geak_hip"

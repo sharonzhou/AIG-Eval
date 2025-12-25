@@ -13,3 +13,6 @@ agents/geak_optimagentv2/GEAK-eval/
 agents/geak_optimagentv2/.geak_setup_complete
 agents/geak_ourllm_kernel2kernel/GEAK-agent
 tasks/AIG-Eval-Internal-Tasks/
+run.sh
+config_new.yaml
+saved_results
