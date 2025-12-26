@@ -144,7 +144,7 @@ agent:
     Note: In rare cases, if you need to reference a similar format in your command, you might have
     to proceed in two steps, first writing TRIPLEBACKTICKSBASH, then replacing them with ```bash.
   step_limit: 0.
-  cost_limit: 3.
+  cost_limit: 0.
   # mode: confirm
 env:
   env:
@@ -159,9 +159,9 @@ model:
   model_kwargs:
     temperature: 0.0
     drop_params: true
-    api_base: "https://llm-api.amd.com/azure/engines/gpt-5"
-    api_key: "${MINI_AGENT_API_KEY}"
+    api_base: ""
+    api_key: ""
     extra_headers:
-      "Ocp-Apim-Subscription-Key": "${MINI_AGENT_API_KEY}"
+      "Ocp-Apim-Subscription-Key": ""
 
 

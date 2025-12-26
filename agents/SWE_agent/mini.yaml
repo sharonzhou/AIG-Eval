@@ -159,7 +159,7 @@ model:
   model_kwargs:
     temperature: 0.0
     drop_params: true
-    api_base: "https://llm-api.amd.com/azure/engines/gpt-5"
-    api_key: "${MINI_AGENT_API_KEY}"
+    api_base: ""
+    api_key: ""
     extra_headers:
-      "Ocp-Apim-Subscription-Key": "${MINI_AGENT_API_KEY}"
+      "Ocp-Apim-Subscription-Key": ""
