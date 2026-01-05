@@ -1,5 +1,6 @@
 import yaml
 import logging
+import argparse
 from pathlib import Path
 from datetime import datetime
 from src.tasks import get_task_config
@@ -7,11 +8,16 @@ from src.preprocessing import setup_workspace
 from src.module_registration import AgentType, load_agent_launcher, load_post_processing_handler
 
 
+parser = argparse.ArgumentParser(description="arguments for AIG-Eval")
+parser.add_argument("--config_name", type=str, default="config.yaml",help="the config of AIG-Eval, default set to config. \
+                    You can set different tasks in different config yaml file in order to run multi evaluation task in one folder.")
+
 def main() -> None:
     """Main entry point for AIG-Eval framework."""
+    args = parser.parse_args()
 
     # Load config.yaml
-    with open('config.yaml', 'r') as f:
+    with open(args.config_name, 'r') as f:
         config = yaml.safe_load(f)
 
     # Extract configuration
