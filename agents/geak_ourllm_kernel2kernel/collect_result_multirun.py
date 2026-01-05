@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 
 def normalized_levenshtein(s1, s2):
-    """单个字符串对的归一化编辑距离(值越小越相似，范围[0,1])"""
+    """the edit distance for a single string, normalized to [0,1]"""
     if len(s1) == 0 and len(s2) == 0:
         return 0.0
     max_len = max(len(s1), len(s2))
@@ -16,7 +16,7 @@ def normalized_levenshtein(s1, s2):
     return levenshtein_dist(s1,s2)/ max_len
 
 def dtw_string_distance(list1, list2):
-    """基于编辑距离的DTW序列距离(归一化后，范围[0,1])"""
+    """the dtw distance based on edit distance, normalized to [0,1]"""
     # firstly, filter the blank lines in these lists
     list1 = [s.strip() for s in list1 if s.strip()]
     list2 = [s.strip() for s in list2 if s.strip()]
@@ -30,13 +30,13 @@ def dtw_string_distance(list1, list2):
     m, n = len(list1), len(list2)
     if m == 0 and n == 0:
         return 0.0
-    # 构建距离矩阵(每个元素是对应字符串的归一化编辑距离)
+    # construct the distance matrix
     dist_matrix = np.zeros((m, n))
     for i in range(m):
         for j in range(n):
             dist_matrix[i][j] = normalized_levenshtein(list1[i], list2[j])
     
-    # DTW动态规划计算
+    # dynamic programming for dtw distance
     dtw = np.full((m+1, n+1), np.inf)
     dtw[0, 0] = 0.0
     for i in range(1, m+1):
@@ -44,13 +44,13 @@ def dtw_string_distance(list1, list2):
             cost = dist_matrix[i-1, j-1]
             dtw[i, j] = cost + min(dtw[i-1, j], dtw[i, j-1], dtw[i-1, j-1])
     
-    # 归一化：总距离/最长序列长度
+    # normalization
     max_len = max(m, n)
     return dtw[m, n] / max_len if max_len != 0 else 0.0
 
 #you should firstly move the workspace to collect to ${folder_to_collect}, notice that each kernel should only appear once in this folder
-folder_to_collect = Path().parent.parent / "/saved_results/qwen3_coder_30b_sft_40k_1219_4des_10iter"
-#folder_to_collect = "../../workspace_hip2hip_geak_ourllm_kernel2kernel"
+#folder_to_collect = Path().parent.parent / "/saved_results/qwen3_coder_30b_sft_40k_1219_4des_10iter"
+folder_to_collect = "workspace_MI250_geak_ourllm_kernel2kernel"
 
 lv1_list = ['bitonic_sort','convolution','floyd_warshall','ball_query','knn','three_nn','histogram','monte_carlo_pi','point_to_voxel','render_forward','silu','fused_buckeized','emb_segment_reduce_backward','emb_segment_reduce_forward','causal_conv1d_simple','rms','fused_bucketized']
 lv2_list = ['mla','assign_score_withk','furthest_point_sample','gather_points','roiaware_pool3d','roipoint_pool3d','three_interpolate','causal_conv1d_channellast','points_in_boxes','prefix_sum']

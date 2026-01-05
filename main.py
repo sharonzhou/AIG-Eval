@@ -9,7 +9,8 @@ from src.module_registration import AgentType, load_agent_launcher, load_post_pr
 
 
 parser = argparse.ArgumentParser(description="arguments for AIG-Eval")
-parser.add_argument("--config_name", type=str, default="config.yaml",help="the config of AIG-Eval, default set to config.yaml")
+parser.add_argument("--config_name", type=str, default="config.yaml",help="the config of AIG-Eval, default set to config. \
+                    You can set different tasks in different config yaml file in order to run multi evaluation task in one folder.")
 
 def main() -> None:
     """Main entry point for AIG-Eval framework."""
