@@ -49,8 +49,9 @@ def dtw_string_distance(list1, list2):
     return dtw[m, n] / max_len if max_len != 0 else 0.0
 
 #you should firstly move the workspace to collect to ${folder_to_collect}, notice that each kernel should only appear once in this folder
-#folder_to_collect = Path().parent.parent / "/saved_results/qwen3_coder_30b_sft_40k_1219_4des_10iter"
-folder_to_collect = "workspace_MI250_geak_ourllm_kernel2kernel"
+#folder_to_collect = Path(__file__).parent.parent.parent / "saved_results/qwen3_coder_30b_sft_40k_1219_4des_10iter"
+folder_to_collect = Path(__file__).parent.parent.parent / "workspace_qwen3_8b_MI250_geak_ourllm_kernel2kernel"
+folder_to_collect = str(folder_to_collect)
 
 lv1_list = ['bitonic_sort','convolution','floyd_warshall','ball_query','knn','three_nn','histogram','monte_carlo_pi','point_to_voxel','render_forward','silu','fused_buckeized','emb_segment_reduce_backward','emb_segment_reduce_forward','causal_conv1d_simple','rms','fused_bucketized']
 lv2_list = ['mla','assign_score_withk','furthest_point_sample','gather_points','roiaware_pool3d','roipoint_pool3d','three_interpolate','causal_conv1d_channellast','points_in_boxes','prefix_sum']
@@ -66,6 +67,8 @@ item_list = []
 total_dict = {'lv1': {'total_case':0, 'valid_case':0, 'pass_case':0, 'spd_item_dict':{} }, 'lv2': {'total_case':0, 'valid_case':0, 'pass_case':0, 'spd_item_dict':{} } }
 
 for item in os.listdir(folder_to_collect):
+    if 'tmp.log' in item:
+        continue
     cur_path = os.path.join(folder_to_collect, item)
     core_item = '_'.join(item.split('_')[:-2])
     if core_item not in lv1_list and core_item not in lv2_list:
@@ -111,13 +114,17 @@ for item in os.listdir(folder_to_collect):
                 break
     #print(perf_path)
     perf_record = json.loads(open(perf_path).read())
-    if isinstance(perf_record['ori_perf'], list):
-        spd_up = []
-        for i in range(len(perf_record['ori_perf'])):
-            spd_up.append(perf_record['ori_perf'][i]/perf_record['opt_perf'][i])
-        spd_up = np.mean(np.array(spd_up))
-    else:
-        spd_up = perf_record['ori_perf']/perf_record['opt_perf']
+    print(perf_path)
+    try:
+        if isinstance(perf_record['ori_perf'], list):
+            spd_up = []
+            for i in range(len(perf_record['ori_perf'])):
+                spd_up.append(perf_record['ori_perf'][i]/perf_record['opt_perf'][i])
+            spd_up = np.mean(np.array(spd_up))
+        else:
+            spd_up = perf_record['ori_perf']/perf_record['opt_perf']
+    except:
+        spd_up = 0.0
 
 
 

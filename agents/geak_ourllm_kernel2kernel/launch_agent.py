@@ -95,8 +95,14 @@ def launch_agent(eval_config: dict[str, Any], task_config_dir: str, workspace: s
     instructions[0]["file_name"] = source_file_path[0] if isinstance(source_file_path, list) and source_file_path else ""
     # Assign workspace path
     instructions[0]["workspace"] = os.path.abspath( workspace)
-    instructions[0]["task"] = eval_config.get("tasks", "N/A")[0]
-    instructions[0]['current_task'] = current_task
+    instructions[0]["task"] = current_task
+    instructions[0]["model_name"] = agent_config['model_name']
+    instructions[0]["max_length"] = agent_config['max_length']
+    if "api_url" in eval_config.keys():
+        instructions[0]['api_url'] = eval_config.get("api_url", "http://0.0.0.0:8001/v1/chat/completions")
+    else:
+        instructions[0]['api_url'] = agent_config.get("api_url", "http://0.0.0.0:8001/v1/chat/completions")
+
     if 'file_path' in instructions[0].keys():
         del instructions[0]['file_path']
     with open(json_path, "w") as f:
@@ -121,12 +127,7 @@ def launch_agent(eval_config: dict[str, Any], task_config_dir: str, workspace: s
     assert 'OPENAI_API_KEY' in os.environ, "OPENAI_API_KEY environment variable is not set."
     OPENAI_API_KEY = os.environ['OPENAI_API_KEY']
     hipbench_config['api_key'] = OPENAI_API_KEY
-    if "api_url" in eval_config.keys():
-        hipbench_config['api_url'] = eval_config.get("api_url", "http://0.0.0.0:8001/v1/completions")
-    else:
-        hipbench_config['api_url'] = agent_config.get("api_url", "http://0.0.0.0:8001/v1/completions")
     hipbench_config['max_length'] = agent_config.get("max_length", 8192)
-    hipbench_config['current_task'] = current_task
     os.makedirs(output_path,exist_ok=True,mode=0o777)
     with open(hipbench_config_path, "w") as f:
         yaml.dump(hipbench_config, f, default_flow_style=False)

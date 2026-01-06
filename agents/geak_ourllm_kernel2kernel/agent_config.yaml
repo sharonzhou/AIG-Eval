@@ -3,5 +3,6 @@ descendant_num: 4
 timeout_seconds: 20000
 python_path: python3
 target_gpu: MI250
-max_length: 5200
+max_length: 16384
+model_name: test
 llm_provider: vllm 
