@@ -49,6 +49,7 @@ def launch_agent(eval_config: dict[str, Any], task_config_dir: str, workspace: s
     """
 
     AGENT = "main_gaagent_hip_kernel2kernel.py"
+    #AGENT = "main_gaagent_vllm_hip2hip.py"
     #AGENT = "main_gaagent_hip.py"
     AGENT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "GEAK-agent", "src")
     
@@ -98,6 +99,18 @@ def launch_agent(eval_config: dict[str, Any], task_config_dir: str, workspace: s
     instructions[0]["task"] = current_task
     instructions[0]["model_name"] = agent_config['model_name']
     instructions[0]["max_length"] = agent_config['max_length']
+    if 'kernel' in AGENT:
+        instructions[0]["instruction"]  = "Please optimize the following HIP kernel/function for better performance on the ROCm platform (MI250 GPU).\n\
+    MI250 specs: 208KB LDS per Compute Unit (CU), 64 CUs total.\n\nYou will receive only a single kernel/function from the .hip file.\n\
+    You may only modify the function body, but you must output the entire function including its signature.\n\nAllowed:\n\nRewrite or optimize the function body only.\n\n\
+    Add local variables, shared memory, unrolling, vectorized I/O, etc.\n\nReorder code inside the function.\n\nAdd comments inside the function.\n\nNot Allowed:\n\nDo NOT change the function name.\n\n\
+    Do NOT change the function signature or parameter types.\n\nDo NOT add, remove, or modify any code outside this function.\n\nNo helper functions\n\nNo new includes\n\nNo new kernels\n\n\
+    No changes to launch configuration\n\nDo NOT assume access to any code outside this function.\n\nOptimization guidelines (apply those that fit):\n\nChunked/tiled processing using registers or LDS\n\n\
+    Shared-memory buffering (LDS)\n\nDelayed stores to shared memory\n\nVectorized loads/stores (float2/float4/uint4/etc.)\n\nLoop unrolling\n\nBound checks for variable sizes\n\nMinimize warp/wavefront divergence\n\n\
+    Increase ILP via interleaving independent ops\n\nReduce LDS/register usage for higher occupancy\n\nFavor coalesced memory and AMD wavefront-friendly access patterns\n\nFuse operations where possible\n\n\
+    Use compiler hints like #pragma unroll\n\nHard Requirements:\n\nReturn the full function, including the exact original function signature.\n\nOnly modify code inside the function body.\n\n\
+    Preserve algorithmic correctness and bitwise-equivalent outputs.\n\nMaintains existing formatting and comments unless improving them.\n\nCode must be compilable and runnable."
+
     if "api_url" in eval_config.keys():
         instructions[0]['api_url'] = eval_config.get("api_url", "http://0.0.0.0:8001/v1/chat/completions")
     else:
