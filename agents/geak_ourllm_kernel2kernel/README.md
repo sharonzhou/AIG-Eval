@@ -12,4 +12,10 @@ You need to enter a docker that support VLLM. e.g. rlsys/rocm-6.3.4-patch:rocm6.
 Notice that you should set up a VLLM api first, like this
 export VLLM_DISABLE_QUANTIZATION=1
 model_path=YOUR MODEL PATH
-"HIP_VISIBLE_DEVICES=0 vllm serve ${model_path} --host 0.0.0.0 --port 8001 --trust-remote-code --tensor-parallel-size 1 --quantization None --max-num-batched-tokens 65536  --gpu-memory-utilization 0.9 --max-model-len 32768"
+model_name=YOU CAN WHATEVER NAME YOUR MODEL
+"HIP_VISIBLE_DEVICES=0 vllm serve ${model_path} --served-model-name ${model_name}  --host 0.0.0.0 --port 8001 --trust-remote-code --tensor-parallel-size 1 --quantization None --max-num-batched-tokens 65536  --gpu-memory-utilization 0.9 --max-model-len 40960"
+
+## Write Agent Config
+- The model name in agent config should be identical to the one you set in your API
+- the seqlence length is suggested to firstly set to 16384, which will be divided by 2 if reaches the max length of your model
+- descendant and iter are suggested to set to 4 and 10 respectively. If you want to quickly run the evaluation process, you can set to 2 and 2 respectively, but not so precise.

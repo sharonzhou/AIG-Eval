@@ -7,9 +7,7 @@ compile_command:
 correctness_command:
 - ./applications_bitonic_sort
 performance_command:
-- rocprof-compute profile -n kernelgen --path rocprof_compute_profile --no-roof --join-type
-  kernel -b SQ -b TCP -b TCC -- ./applications_bitonic_sort -l 15
-- rocprof-compute analyze --path rocprof_compute_profile -b 2
+- ./applications_bitonic_sort
 task_type: hip2hip
 task_result_template: null
 prompt:
