@@ -49,7 +49,7 @@ def dtw_string_distance(list1, list2):
     return dtw[m, n] / max_len if max_len != 0 else 0.0
 
 #you should firstly move the workspace to collect to ${folder_to_collect}, notice that each kernel should only appear once in this folder
-folder_to_collect = Path(__file__).parent.parent.parent / "saved_results/zeping_RL_v2_20iter"
+folder_to_collect = Path(__file__).parent.parent.parent / "saved_results/zeping_30B_RL_v1_260111_4des_max15iter/"
 #folder_to_collect = Path(__file__).parent.parent.parent / "workspace_rl_v2_4des_15iter_MI250_geak_ourllm_kernel2kernel"
 folder_to_collect = str(folder_to_collect)
 
@@ -59,7 +59,7 @@ lv2_list = ['mla','assign_score_withk','furthest_point_sample','gather_points','
 banned_task = ["rms",'mla','monte_carlo_pi']
 
 
-iter_idx = 20
+iter_idx = 15
 valid_case = 0
 pass_case = 0
 slower_num = 0
@@ -84,7 +84,7 @@ for item in os.listdir(folder_to_collect):
     if 'task_result.yaml' in os.listdir(cur_path) and core_item not in banned_task:
         total_dict[key]['valid_case'] += 1
     else:
-        print(f'not valid: {key}-{core_item}')
+        print(f'not valid: {key}-{core_item}: {item}')
         continue
     with open(os.path.join(cur_path, 'task_result.yaml'), "r") as f:
         result_data = yaml.safe_load(f)
@@ -136,7 +136,7 @@ for item in os.listdir(folder_to_collect):
         total_dict[key]['spd_item_dict'][core_item] = cur_spd
     elif spd_up == 1.0:
         #print(perf_path)
-        print(f'failed: {key}-{core_item}')
+        print(f'failed: {key}-{core_item}: {item}')
     else:
         #print(perf_path)
         print(f'slower: {key}-{core_item}, got spdup {spd_up}')
