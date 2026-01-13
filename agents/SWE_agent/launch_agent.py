@@ -90,17 +90,27 @@ def launch_agent(eval_config: dict[str, Any], task_config_dir: str, workspace: s
 
     # iterate over the tasks to check if triton/tritonbench is in the tasks
     if any("triton/tritonbench" in task for task in eval_config["tasks"]):
-        tritonbench_script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "python_bindings", "tritonbench.py")
+        tritonbench_script_path = Path(task_config_dir).parent / "python_bindings" / "tritonbench.py"
         # make a dir for the target path
         os.makedirs(os.path.join(workspace, "python_bindings"), exist_ok=True)
         # copy the script python_bindings/tritonbench.py into the workspace
         shutil.copy(tritonbench_script_path, os.path.join(workspace, "python_bindings", "tritonbench.py"))
+    if any("rocprim" in task for task in eval_config["tasks"]):
+        subprocess.run(
+            ["git", "clone", "https://github.com/ROCm/rocPRIM.git", os.path.join(workspace, "rocPRIM")],
+            check=True
+        )
+        test_correctness_benchmark_path = Path(task_config_dir).parent / "python_bindings" / "test_correctness_benchmark.py"
+        # make a dir for the target path
+        os.makedirs(os.path.join(workspace, "python_bindings"), exist_ok=True)
+        # copy the script python_bindings/test_correctness_benchmark.py into the workspace
+        shutil.copy(test_correctness_benchmark_path, os.path.join(workspace, "python_bindings", "test_correctness_benchmark.py"))
         
     prompt = prompt_builder(task_config_dir, workspace, eval_config, logger)
 
     prompt = integrate_agent_config(prompt, agent_config)
     quoted_prompt = shlex.quote(prompt)
-    cmd = f"{AGENT} {OPTIONS} -t {quoted_prompt} --yolo"
+    cmd = f"{AGENT} {OPTIONS} -t {quoted_prompt} --yolo --output {workspace}/output.traj.json"
 
     # Enable to save the command to a shell script for manual replay/debugging.
     if False:
