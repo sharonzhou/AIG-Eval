@@ -58,10 +58,13 @@ def task_result_format(task_result_template: str) -> str:
         str: Formatted output requirements section with the YAML template
     """
     # Load the task result template
-    if task_result_template == None:
+    if not task_result_template:
         template_path = Path(__file__).parent / "prompts/task_result_template.yaml"
     else:
         template_path = Path(__file__).parent / "prompts" / task_result_template
+        # Guard against directory values or empty paths
+        if template_path.is_dir():
+            template_path = Path(__file__).parent / "prompts/task_result_template.yaml"
 
     with open(template_path, 'r') as f:
         template_content = f.read()
@@ -104,10 +107,8 @@ def prompt_builder(task_config_dir: str, workspace_directory: Path, eval_config:
 
     # Build prompt sections
     prompt_sections = []
-
+    task_type_prompt = ""
     # 1. Task Type Section
-    if not task_type_name:
-        raise ValueError("task_type is missing in task config")
     if task_type_name == 'hip2hip':
         task_type_prompt = task_type.hip2hip_task_type()
     elif task_type_name == 'pytorch2hip':
@@ -119,7 +120,7 @@ def prompt_builder(task_config_dir: str, workspace_directory: Path, eval_config:
     elif task_type_name == 'instruction2triton':
         task_type_prompt = task_type.instruction2triton_task_type()
     else:
-        raise ValueError(f"Unknown task type: {task_type_name}")
+        logger.warning(f"Unknown task type: {task_type_name}")
 
     prompt_sections.append(task_type_prompt)
     

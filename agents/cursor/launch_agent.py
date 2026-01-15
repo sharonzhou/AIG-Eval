@@ -84,6 +84,8 @@ def launch_agent(eval_config: dict[str, Any], task_config_dir: str, workspace: s
         logger.info("Debug script written; skipping live run.")
         return ""
     
+    agent_log_path = Path(workspace) / "agent_output.log"
+    logger.info(f"Agent output log: {agent_log_path}")
     logger.info(f"Running command: {cmd}")
     logger.info("=" * 80)
     logger.info("Agent Output (streaming):")
@@ -113,6 +115,13 @@ def launch_agent(eval_config: dict[str, Any], task_config_dir: str, workspace: s
     # Collect output while streaming
     stdout_lines = []
     stderr_lines = []
+    log_lock = threading.Lock()
+    agent_log_file = agent_log_path.open("a", encoding="utf-8")
+
+    def write_agent_log(line: str) -> None:
+        with log_lock:
+            agent_log_file.write(line + "\n")
+            agent_log_file.flush()
 
     def format_agent_event(data):
         """Convert cursor stream-json payloads into a readable single-line string."""
@@ -149,7 +158,74 @@ def launch_agent(eval_config: dict[str, Any], task_config_dir: str, workspace: s
                 if "command" in args:
                     summary.append(f"cmd={args.get('command')}")
             details = " ".join(summary)
-            return f"tool_call[{subtype}] {call_name} {details}".strip()
+            result_str = f"tool_call[{subtype}] {call_name} {details}".strip()
+            
+            # Check if result is included in the tool_call event (especially for completed calls)
+            if subtype == "completed":
+                result = data.get("result") or call.get(call_name, {}).get("result") or data.get("tool_result")
+                if result is not None:
+                    # Format the result
+                    if isinstance(result, dict):
+                        content = result.get("content", result.get("text", result.get("output", "")))
+                        if isinstance(content, str) and content:
+                            if len(content) > 1000:
+                                content = content[:1000] + "... [truncated]"
+                            result_str += f"\n  result: {content}"
+                        elif isinstance(content, list):
+                            texts = []
+                            for part in content:
+                                if isinstance(part, dict):
+                                    if part.get("type") == "text":
+                                        texts.append(part.get("text", ""))
+                                    elif part.get("type") == "error":
+                                        texts.append(f"[ERROR] {part.get('error', '')}")
+                                elif isinstance(part, str):
+                                    texts.append(part)
+                            if texts:
+                                combined = " ".join(t.strip() for t in texts if t.strip())
+                                if len(combined) > 1000:
+                                    combined = combined[:1000] + "... [truncated]"
+                                result_str += f"\n  result: {combined}"
+                    elif isinstance(result, str):
+                        if len(result) > 1000:
+                            result = result[:1000] + "... [truncated]"
+                        result_str += f"\n  result: {result}"
+            
+            return result_str
+
+        if event_type in ("tool_result", "tool_observation", "tool_call_result"):
+            # Handle tool result/observation events
+            result = data.get("tool_result") or data.get("tool_observation") or data.get("result") or {}
+            if isinstance(result, dict):
+                # Try to extract meaningful information
+                content = result.get("content", "")
+                if isinstance(content, str):
+                    # Truncate long outputs for readability
+                    if len(content) > 500:
+                        content = content[:500] + "... [truncated]"
+                    return f"tool_observation: {content}"
+                elif isinstance(content, list):
+                    # Handle structured content
+                    texts = []
+                    for part in content:
+                        if isinstance(part, dict):
+                            if part.get("type") == "text":
+                                texts.append(part.get("text", ""))
+                            elif part.get("type") == "error":
+                                texts.append(f"[ERROR] {part.get('error', '')}")
+                    if texts:
+                        combined = " ".join(t.strip() for t in texts if t.strip())
+                        if len(combined) > 500:
+                            combined = combined[:500] + "... [truncated]"
+                        return f"tool_observation: {combined}"
+            # Fallback: show raw result if it's a simple type
+            if isinstance(result, (str, int, float, bool)):
+                result_str = str(result)
+                if len(result_str) > 500:
+                    result_str = result_str[:500] + "... [truncated]"
+                return f"tool_observation: {result_str}"
+            # If result is complex, show a summary
+            return f"tool_observation: [result received]"
 
         if event_type == "user":
             message = data.get("message", {}).get("content", [])
@@ -161,21 +237,59 @@ def launch_agent(eval_config: dict[str, Any], task_config_dir: str, workspace: s
             if not text:
                 return "user (no text)"
             text = " ".join(text.split())
-            return f"user: {text[:160]}{'...' if len(text) > 160 else ''}"
+            return f"user: {text}"
 
         if event_type == "system":
             model = data.get("model")
             cwd = data.get("cwd")
             return f"system init model={model} cwd={cwd}"
 
-        # Fallback: compact json
+        # Fallback: compact json - log unknown event types for debugging
         import json
-        return json.dumps(data, ensure_ascii=False, separators=(",", ":"))
+        # Only log if it's not an empty dict or known to be noisy
+        if data and event_type not in ("ping", "pong", "heartbeat"):
+            json_str = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
+            # Truncate very long JSON
+            if len(json_str) > 2000:
+                json_str = json_str[:2000] + "... [truncated]"
+            return f"[UNKNOWN_EVENT type={event_type}] {json_str}"
+        return None
 
     def read_stream(stream, output_list, prefix, log_func):
         """Read from stream in a separate thread to avoid blocking"""
         import json
         import ast
+        assistant_buffer: list[str] = []
+        thinking_buffer: list[str] = []
+        thinking_subtype: str = None
+
+        def flush_assistant_buffer() -> None:
+            if not assistant_buffer:
+                return
+            combined = " ".join(part for part in assistant_buffer if part)
+            assistant_buffer.clear()
+            if combined.strip():
+                formatted = f"assistant: {combined.strip()}"
+                output_list.append(formatted)
+                log_line = f"{prefix} {formatted}"
+                log_func(log_line)
+                write_agent_log(log_line)
+
+        def flush_thinking_buffer() -> None:
+            nonlocal thinking_subtype
+            if not thinking_buffer:
+                return
+            combined = " ".join(part for part in thinking_buffer if part)
+            thinking_buffer.clear()
+            if combined.strip():
+                subtype_str = f"[{thinking_subtype}]" if thinking_subtype else ""
+                formatted = f"thinking{subtype_str} {combined.strip()}"
+                output_list.append(formatted)
+                log_line = f"{prefix} {formatted}"
+                log_func(log_line)
+                write_agent_log(log_line)
+            thinking_subtype = None
+
         try:
             for line in iter(stream.readline, ''):
                 if not line:
@@ -185,26 +299,104 @@ def launch_agent(eval_config: dict[str, Any], task_config_dir: str, workspace: s
                 # Try to parse as JSON (stream-json format)
                 try:
                     data = json.loads(raw_line)
+                    event_type = data.get("type") if isinstance(data, dict) else None
+                    if event_type == "assistant":
+                        flush_thinking_buffer()
+                        content = data.get("message", {}).get("content", [])
+                        texts = []
+                        for part in content:
+                            if isinstance(part, dict) and part.get("type") == "text":
+                                texts.append(part.get("text", ""))
+                        text = " ".join(t.strip() for t in texts if t and t.strip())
+                        if text:
+                            assistant_buffer.append(text)
+                        continue
+
+                    if event_type == "thinking":
+                        subtype = data.get("subtype")
+                        text = " ".join((data.get("text") or "").split())
+                        if text:
+                            # If subtype changed, flush previous buffer
+                            if thinking_subtype is not None and thinking_subtype != subtype:
+                                flush_thinking_buffer()
+                            thinking_subtype = subtype
+                            thinking_buffer.append(text)
+                        continue
+
+                    flush_assistant_buffer()
+                    flush_thinking_buffer()
                     formatted = format_agent_event(data)
                     if formatted:
-                        output_list.append(formatted)
-                        log_func(f"{prefix} {formatted}")
+                        # Handle multi-line output (e.g., tool results with newlines)
+                        lines = formatted.split('\n')
+                        for i, line in enumerate(lines):
+                            if i == 0:
+                                output_list.append(line)
+                                log_line = f"{prefix} {line}"
+                            else:
+                                # Indent continuation lines
+                                output_list.append(line)
+                                log_line = f"{prefix}   {line}"
+                            log_func(log_line)
+                            write_agent_log(log_line)
                     continue
                 except json.JSONDecodeError:
                     try:
                         data = ast.literal_eval(raw_line)
+                        event_type = data.get("type") if isinstance(data, dict) else None
+                        if event_type == "assistant":
+                            flush_thinking_buffer()
+                            content = data.get("message", {}).get("content", [])
+                            texts = []
+                            for part in content:
+                                if isinstance(part, dict) and part.get("type") == "text":
+                                    texts.append(part.get("text", ""))
+                            text = " ".join(t.strip() for t in texts if t and t.strip())
+                            if text:
+                                assistant_buffer.append(text)
+                            continue
+
+                        if event_type == "thinking":
+                            subtype = data.get("subtype")
+                            text = " ".join((data.get("text") or "").split())
+                            if text:
+                                # If subtype changed, flush previous buffer
+                                if thinking_subtype is not None and thinking_subtype != subtype:
+                                    flush_thinking_buffer()
+                                thinking_subtype = subtype
+                                thinking_buffer.append(text)
+                            continue
+
+                        flush_assistant_buffer()
+                        flush_thinking_buffer()
                         formatted = format_agent_event(data)
                         if formatted:
-                            output_list.append(formatted)
-                            log_func(f"{prefix} {formatted}")
+                            # Handle multi-line output (e.g., tool results with newlines)
+                            lines = formatted.split('\n')
+                            for i, line in enumerate(lines):
+                                if i == 0:
+                                    output_list.append(line)
+                                    log_line = f"{prefix} {line}"
+                                else:
+                                    # Indent continuation lines
+                                    output_list.append(line)
+                                    log_line = f"{prefix}   {line}"
+                                log_func(log_line)
+                                write_agent_log(log_line)
                         continue
                     except Exception:
                         pass
 
+                flush_assistant_buffer()
+                flush_thinking_buffer()
                 if raw_line.strip():
                     output_list.append(raw_line)
-                    log_func(f"{prefix} {raw_line}")
+                    log_line = f"{prefix} {raw_line}"
+                    log_func(log_line)
+                    write_agent_log(log_line)
         finally:
+            flush_assistant_buffer()
+            flush_thinking_buffer()
             stream.close()
 
     # Create threads to read stdout and stderr concurrently
@@ -237,8 +429,9 @@ def launch_agent(eval_config: dict[str, Any], task_config_dir: str, workspace: s
             process.kill()
 
     # Wait for output threads to finish reading
-    stdout_thread.join(timeout=1)
-    stderr_thread.join(timeout=1)
+    stdout_thread.join()
+    stderr_thread.join()
+    agent_log_file.close()
 
     # Log stderr summary if present
     if stderr_lines:

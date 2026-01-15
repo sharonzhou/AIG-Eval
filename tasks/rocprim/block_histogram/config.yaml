@@ -1,29 +1,48 @@
 prompt:
   cheatsheet: null
-  instructions: "I use `rocPRIM/benchmark/benchmark_block_histogram.cpp` to test `rocPRIM/rocprim/include/rocprim/block/block_histogram.hpp`\
-    \ performance. But the performance is too bad (low bandwidth).\n\n1. You must\
-    \ find the all files related to `rocPRIM/rocprim/include/rocprim/block/block_histogram.hpp`.\
-    \ And review and edit it.\n2. The files in `rocPRIM/benchmark` is NOT allowed\
-    \ to be edited.\n3. The files in `rocPRIM/test` is NOT allowed to be edited.\n\
-    4. The file `python_bindings/test_correctness_benchmark.py` is forbidden to be\
-    \ edited.\n5. All CMAKEList and CMAKE files are forbidden to be edited.\n6. You\
-    \ can modify multiple files at once.\n7. Before Action `submit`, You MUST run\
-    \ the Performance test.\n8. When the performance does not reach 1.2 times the\
-    \ baseline, further optimization must be carried out and Do not take Action `submit`.\
-    \ Use the average over bytes_per_second of all datatypes as the metric.\n9. Your\
-    \ edit should not effect the compile of other kernels\n \n# running command\n\
-    Before changing code, you should run `python python_bindings/test_correctness_benchmark.py\
-    \ benchmark_block_histogram rocPRIM ` to get baseline number\nAfter changing,\
-    \ you can run `python python_bindings/test_correctness_benchmark.py benchmark_block_histogram\
-    \ rocPRIM ` \nThis command first runs the correctness benchmark for the kernel.\
-    \ Benchmarking will only proceed if all test cases pass.\nIf any correctness test\
-    \ fails, you must carefully debug the kernel before proceeding.\nThe kernel will\
-    \ then be benchmarked using the bandwidth (bytes_per_second) metric under different\
-    \ input key types.\n \n \n**Innovative Optimization Design**\nFirst you MUST review\
-    \ all related files\uFF0Cand edit them.\nBefore give Optimization methods, you\
-    \ MUST review all related files.\nAfter review the related files, You MUST summary\
-    \ the provided Optimization methods. Then provide your optimization method. Not\
-    \ exactly the same as any other optimization methods.\n   - Propose a **new optimization**\
-    \ that:\n     - Aims to further improve performance (bandwidth under different\
-    \ data type) and explain the reasoning.  \n   - Provide a brief explanation of\
-    \ the method and expected benefits."
+  instructions: |
+    I use `rocPRIM/benchmark/benchmark_block_histogram.cpp` to test `rocPRIM/rocprim/include/rocprim/block/block_histogram.hpp` performance. But the performance is too bad (low bandwidth).
+
+    1. You must find the all files related to `rocPRIM/rocprim/include/rocprim/block/block_histogram.hpp`. And review and edit it.
+    2. The files in `rocPRIM/benchmark` is NOT allowed to be edited.
+    3. The files in `rocPRIM/test` is NOT allowed to be edited.
+    4. The file `python_bindings/test_correctness_benchmark.py` is forbidden to be edited.
+    5. All CMAKEList and CMAKE files are forbidden to be edited.
+    6. You can modify multiple files at once.
+    7. Before Action `submit`, You MUST run the Performance test.
+    8. Try to achieve the best performance, further optimization must be carried out and Do not take Action `submit`. Use the average over bytes_per_second of all datatypes as the metric.
+    9. Your edit should not effect the compile of other kernels
+
+    # running command
+    Before changing code, you should run `python python_bindings/test_correctness_benchmark.py benchmark_block_histogram rocPRIM ` to get baseline number
+    After changing, you can run `python python_bindings/test_correctness_benchmark.py benchmark_block_histogram rocPRIM `
+    This command first runs the correctness benchmark for the kernel. Benchmarking will only proceed if all test cases pass.
+    If any correctness test fails, you must carefully debug the kernel before proceeding.
+    The kernel will then be benchmarked using the bandwidth (bytes_per_second) metric under different input key types.
+
+    **Optimization Guidelines**
+    Before modifying any code, you must perform the following steps:
+    1. **Automatically read the current GPU hardware information** (such as architecture model, number of SMs, maximum threads per SM, shared memory size, register count, memory bandwidth, etc.).
+      - Recommended to use `rocminfo`, `rocm-smi`, rocm-smi --showproductname or directly query the CUDA/HIP runtime API.
+    2. **Based on hardware characteristics, and considering the nature of the algorithm, propose multiple possible optimization directions and provide a brief analysis for each.** These optimization directions should include, but are not limited to:
+      - Increasing GP U occupancy
+      - Maximizing memory bandwidth utilization
+      - Optimizing shared memory access patterns to reduce bank conflicts
+      - Adaptive tuning of warp/block parameters for different architectures (e.g., GFX9, GFX10, etc.)
+      - Efficient allocation of registers/shared memory/local memory
+      - Using pipelining or prefetching techniques to hide memory latency
+      - Any other innovative, architecture-specific or parallel-level optimizations targeting the hardware
+    3. **Assign a priority to each optimization direction** (ranking them according to the potential performance gain), and **experiment with them one by one in order of priority**.
+    Final workflow:
+    - First, output all key hardware information (in a table or list, clearly readable)
+    - Output a list of hardware-targeted optimization directions, with explanations and expected benefits, and an assigned priority
+    - Only after analyzing hardware and formulating optimization strategies, begin specific code optimizations. Try one at a time, test performance, and then proceed to the next, until the target performance improvement is achieved
+    This aims to ensure you perform systematic, hardware-adaptive optimization rather than simply applying generic practices.
+
+    **Innovative Optimization Design**
+    First you MUST review all related files，and edit them.
+    Before give Optimization methods, you MUST review all related files.
+    After review the related files, You MUST summary the provided Optimization methods. Then provide your optimization method. Not exactly the same as any other optimization methods.
+      - Propose a **new optimization** that:
+        - Aims to further improve performance (bandwidth under different data type) and explain the reasoning.
+      - Provide a brief explanation of the method and expected benefits.

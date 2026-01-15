@@ -25,8 +25,8 @@ agent:
 #   - all                                             # Run ALL available tasks
 
 tasks:
-  - customer_hip/silu 
+  - rocprim/device_merge_sort
 
-target_gpu_model: MI300
+target_gpu_model: MI308
 log_directory: logs
 workspace_directory_prefix: workspace
