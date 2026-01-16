@@ -1,8 +1,6 @@
-# AIG-Eval: GPU Kernel Optimization Evaluation Framework
+# AIG-Eval: AI Agent Evaluation for GPU Kernel Optimization
 
-> Design Doc: https://docs.google.com/document/d/1GhC8kN3OO5d0ocr9taAWZ6k_oKIwBdNby4O0OVXq8dM/edit?tab=t.0#heading=h.rbclw8pmg1w9
-
-AIG-Eval is a comprehensive evaluation framework for comparing code-generation agents and LLMs on GPU kernel optimization tasks. The framework automates the process of benchmarking agents against GPU programming challenges, providing standardized metrics for compilation success, correctness, and performance improvements.
+AIG-Eval is an AI agent evaluation framework and harness that makes it easy for you to compare LLMs and agents -- such as Cursor, Claude Code, or OpenEvolve (GEAK) -- on important GPU kernel optimization tasks. Automatically benchmark you agents against GPU programming challenges. Get metrics that are critical to measuring the goodness of generated kernels: compilation success (it runs), correctness (it runs correctly), and GPU performance (it runs faster than the baseline). Built by AMD's AI Group (AIG).
 
 ## Overview
 
@@ -14,7 +12,7 @@ AIG-Eval enables systematic evaluation of AI agents on GPU kernel optimization t
 
 ## Features
 
-- **Multi-Agent Support**: Evaluate cursor, Claude Code, SWE-agent, OpenEvolve (GEAK), single LLM calls, and custom agents
+- **Multi-Agent Support**: Cursor, Claude Code, SWE-agent, OpenEvolve (GEAK), single LLM calls, and custom agents
 - **Multiple LLM Providers**: Integration with OpenAI (GPT-5), Anthropic Claude (Opus 4, Sonnet 4.5), OpenRouter, and vLLM
 - **Task Categories**: Support for HIP, Triton (TritonBench, ROCmBench), and PyTorch kernel optimization tasks
 - **Automated Scoring**: Cumulative scoring based on compilation (20 points), correctness (100 points), and speedup (ratio × 100 points)
@@ -177,6 +175,8 @@ AIG-Eval uses a cumulative scoring system:
 | **Speedup** | ratio × 100 | Performance improvement over baseline |
 
 **Example**: A submission that compiles (20), passes correctness (100), and achieves 1.5× speedup (150) would score 270 points.
+
+Note: This is not the only way to score, but we have found it to be effective and helpful.
 
 ## Supported Agents
 
